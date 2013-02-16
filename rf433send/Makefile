@@ -24,7 +24,7 @@
 NAME := rf433send
 BOARD_TYPE := teensy2
 OBJ := $(NAME).o
-LIBS := util led lufa-descriptor-usbserial
+LIBS := util led lufa-descriptor-usbserial usbio
 EXTERNAL_LIBS := lufa
 
 LUFA_PATH := ../contrib/LUFA-120219

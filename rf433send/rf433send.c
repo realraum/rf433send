@@ -26,9 +26,11 @@
 #include <avr/wdt.h>
 #include <avr/interrupt.h>
 #include <avr/power.h>
+#include <stdio.h>
 
 #include "util.h"
 #include "led.h"
+#include "usbio.h"
 
 /*
   this program listens on a usb serial/acm interface. When the send command ('s') 
@@ -39,42 +41,6 @@
   This version of the program is optimized for 433MHz radio controlled power plugs.
   To control them you need to add a ASK modulator to the output pin (default F0).
 */
-#include <LUFA/Drivers/USB/USB.h>
-#include "lufa-descriptor-usbserial.h"
-
-USB_ClassInfo_CDC_Device_t VirtualSerial_CDC_Interface =
-  {
-    .Config =
-      {
-        .ControlInterfaceNumber         = 0,
-
-        .DataINEndpointNumber           = CDC_TX_EPNUM,
-        .DataINEndpointSize             = CDC_TXRX_EPSIZE,
-        .DataINEndpointDoubleBank       = false,
-
-        .DataOUTEndpointNumber          = CDC_RX_EPNUM,
-        .DataOUTEndpointSize            = CDC_TXRX_EPSIZE,
-        .DataOUTEndpointDoubleBank      = false,
-
-        .NotificationEndpointNumber     = CDC_NOTIFICATION_EPNUM,
-        .NotificationEndpointSize       = CDC_NOTIFICATION_EPSIZE,
-        .NotificationEndpointDoubleBank = false,
-      },
-  };
-
-void EVENT_USB_Device_ConfigurationChanged(void)
-{
-  CDC_Device_ConfigureEndpoints(&VirtualSerial_CDC_Interface);
-}
-
-void EVENT_USB_Device_ControlRequest(void)
-{
-  CDC_Device_ProcessControlRequest(&VirtualSerial_CDC_Interface);
-}
-/* end LUFA CDC-ACM specific definitions*/
-
-
-/* Start Our Code */
 
 // RF433 Sender is Connected to PF0
 #define SEND_PORT PORTF
@@ -101,7 +67,7 @@ static uint8_t send_sync=0;
 
 
 
-inline void sender_on(void)
+static inline void sender_on(void)
 {
   if(SEND_ZERO)
     SEND_PORT |= (1 << SEND_SERIAL);
@@ -110,7 +76,7 @@ inline void sender_on(void)
   send_pwm_output=1;
 }
 
-inline void sender_off(void)
+static inline void sender_off(void)
 {
   if(SEND_ZERO)
     SEND_PORT &= ~(1 << SEND_SERIAL);
@@ -191,14 +157,14 @@ ISR(TIMER0_COMPA_vect)
   }  
 }
 
-void init_pins(void)
+void pins_init(void)
 { 
     sender_off();
     SEND_DDR |= 1 << SEND_SERIAL;
     DDRF |= 2; //DEBUG
 }
 
-void init_timer(void)
+void timer_init(void)
 {
 }
 
@@ -214,17 +180,17 @@ void handle_cmd(uint8_t cmd)
     case 't': led_toggle(); break;
     case 'r': reset2bootloader(); break;
     case 's': 
-      CDC_Device_SendString(&VirtualSerial_CDC_Interface, "Expecting multibyte command now\n\r");
+      printf("Expecting multibyte command now\n\r");
       command_pos=1;
       break;
-    default: CDC_Device_SendString(&VirtualSerial_CDC_Interface, "error\n\r"); return;
+    default: printf("error\n\r"); return;
     }
-    CDC_Device_SendString(&VirtualSerial_CDC_Interface, "ok\n\r");
+    printf("ok\n\r");
   } else {
     send_cmd_buffer[command_pos-1]=cmd;
     if (command_pos==SEND_CMD_LENGTH)
     {
-      CDC_Device_SendString(&VirtualSerial_CDC_Interface, "Enabling Timer\n\r");
+      printf("Enabling Timer\n\r");
       command_pos=0;
       send_sync=1;
       send_pwm_remain=SEND_PWM_BASE;
@@ -246,22 +212,21 @@ int main(void)
 
   cpu_init();
   led_init();
-  USB_Init();
-  init_pins();
-  init_timer();
+  usbio_init();
+  pins_init();
+  timer_init();
   sei();
 
   for(;;) {
-    int16_t BytesReceived = CDC_Device_BytesReceived(&VirtualSerial_CDC_Interface);
+    int16_t BytesReceived = usbio_bytes_received();
     while(BytesReceived > 0) {
-      int16_t ReceivedByte = CDC_Device_ReceiveByte(&VirtualSerial_CDC_Interface);
-      if(!(ReceivedByte < 0)) {
+      int16_t ReceivedByte = fgetc(stdin);
+      if(ReceivedByte != EOF) {
         handle_cmd(ReceivedByte);
       }
       BytesReceived--;
     }
 
-    CDC_Device_USBTask(&VirtualSerial_CDC_Interface);
-    USB_USBTask();
+    usbio_task();
   }
 }
