@@ -26,6 +26,8 @@ BOARD_TYPE := teensy2
 OBJ := $(NAME).o
 LIBS := util led lufa-descriptor-usbserial usbio
 EXTERNAL_LIBS := lufa
+RESET_FUNC := ../tools/reset_lufa_cdc
+RESET_PARAM := 'r'
 
 LUFA_PATH := ../contrib/LUFA-120219
 LUFA_OPTS  = -D USB_DEVICE_ONLY
