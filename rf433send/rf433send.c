@@ -1,24 +1,24 @@
 /*
- *  spreadspace avr utils
+ *  rf433send
  *
  *
  *  Copyright (C) 2013-2014 Christian Pointner <equinox@spreadspace.org>
- *                     Othmar Gsenger <otti@gsenger.com>
+ *                          Othmar Gsenger <otti@gsenger.com>
  *
- *  This file is part of spreadspace avr utils.
+ *  This file is part of rf433send.
  *
- *  spreadspace avr utils is free software: you can redistribute it and/or modify
+ *  rf433send is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  any later version.
  *
- *  spreadspace avr utils is distributed in the hope that it will be useful,
+ *  rf433send is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with spreadspace avr utils. If not, see <http://www.gnu.org/licenses/>.
+ *  along with rf433send. If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -33,7 +33,7 @@
 #include "usbio.h"
 
 /*
-  this program listens on a usb serial/acm interface. When the send command ('s') 
+  this program listens on a usb serial/acm interface. When the send command ('s')
   is received the send buffer gets filled with the next 3 bytes. These bites are
   sent out serialized to a specified port using PWM. Before the data is sent, a
   sync bit is sent. The data is repeated multiple times.
@@ -71,7 +71,7 @@ static inline void sender_on(void)
 {
   if(SEND_ZERO)
     SEND_PORT |= (1 << SEND_SERIAL);
-  else  
+  else
     SEND_PORT &= ~(1 << SEND_SERIAL);
   send_pwm_output=1;
 }
@@ -80,7 +80,7 @@ static inline void sender_off(void)
 {
   if(SEND_ZERO)
     SEND_PORT &= ~(1 << SEND_SERIAL);
-  else  
+  else
     SEND_PORT |= (1 << SEND_SERIAL);
   send_pwm_output=0;
 }
@@ -153,12 +153,12 @@ ISR(TIMER0_COMPA_vect)
     } else {
       sender_timer_disable();
       sender_off();
-    }  
-  }  
+    }
+  }
 }
 
 void pins_init(void)
-{ 
+{
     sender_off();
     SEND_DDR |= 1 << SEND_SERIAL;
     DDRF |= 2; //DEBUG
@@ -179,7 +179,7 @@ void handle_cmd(uint8_t cmd)
     case '1': led_on(); break;
     case 't': led_toggle(); break;
     case 'r': reset2bootloader(); break;
-    case 's': 
+    case 's':
       printf("Expecting multibyte command now\n\r");
       command_pos=1;
       break;
@@ -198,7 +198,7 @@ void handle_cmd(uint8_t cmd)
       sender_on();
       sender_timer_enable();
     }
-    else  
+    else
       command_pos++;
   }
 }
